@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>キーボード設定アナライザー</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+    }
+    h1 {
+      text-align: center;
+      color: #00d4ff;
+    }
+    .test-section {
+      background: #16213e;
+      border-radius: 12px;
+      padding: 24px;
+      margin: 20px 0;
+    }
+    .test-section h2 {
+      margin-top: 0;
+      color: #00d4ff;
+      font-size: 1.2em;
+    }
+    .description {
+      color: #aaa;
+      font-size: 0.9em;
+      margin-bottom: 16px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 16px;
+      font-size: 24px;
+      border: 2px solid #0f3460;
+      border-radius: 8px;
+      background: #0f0f23;
+      color: #fff;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus {
+      border-color: #00d4ff;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .stat-box {
+      background: #0f3460;
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 0.8em;
+      color: #aaa;
+    }
+    .stat-value {
+      font-size: 1.5em;
+      font-weight: bold;
+      color: #00d4ff;
+    }
+    .warning {
+      color: #ff6b6b;
+    }
+    .success {
+      color: #51cf66;
+    }
+    button {
+      background: #00d4ff;
+      color: #1a1a2e;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1em;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 8px 4px;
+      transition: transform 0.1s, background 0.2s;
+    }
+    button:hover {
+      background: #00b8e6;
+      transform: scale(1.02);
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+    .result-section {
+      background: linear-gradient(135deg, #0f3460, #16213e);
+      border: 2px solid #00d4ff;
+      border-radius: 12px;
+      padding: 24px;
+      margin: 20px 0;
+    }
+    .result-section h2 {
+      color: #00d4ff;
+      margin-top: 0;
+    }
+    .command-box {
+      background: #0f0f23;
+      padding: 16px;
+      border-radius: 8px;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 0.9em;
+      overflow-x: auto;
+      margin: 12px 0;
+    }
+    .command-box code {
+      color: #51cf66;
+    }
+    .hidden {
+      display: none;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #0f3460;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 12px 0;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00d4ff, #51cf66);
+      transition: width 0.3s;
+    }
+    .test-prompt {
+      font-size: 1.2em;
+      color: #ffd43b;
+      margin: 12px 0;
+      padding: 12px;
+      background: rgba(255, 212, 59, 0.1);
+      border-radius: 8px;
+      text-align: center;
+    }
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      padding: 20px;
+      color: #666;
+      font-size: 0.9em;
+    }
+    footer a {
+      color: #00d4ff;
+      text-decoration: none;
+    }
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>⌨️ キーボード設定アナライザー</h1>
+
+  <div class="test-section">
+    <h2>テスト1: 単打テスト</h2>
+    <p class="description">「あいうえお」を1文字ずつゆっくり入力してください。意図しないリピートが発生するか確認します。</p>
+    <div class="test-prompt">あいうえお</div>
+    <input type="text" id="test1-input" placeholder="ここに入力..." autocomplete="off">
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-label">入力文字数</div>
+        <div class="stat-value" id="test1-count">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">意図しないリピート</div>
+        <div class="stat-value" id="test1-repeats">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">判定</div>
+        <div class="stat-value" id="test1-result">-</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>テスト2: 長押しテスト</h2>
+    <p class="description">「a」キーを押し続けてください。リピートが始まるまでの時間と速度を計測します。</p>
+    <div class="test-prompt">「a」を長押し</div>
+    <input type="text" id="test2-input" placeholder="ここでaを長押し..." autocomplete="off">
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-label">リピート開始まで</div>
+        <div class="stat-value" id="test2-delay">-</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">リピート速度</div>
+        <div class="stat-value" id="test2-rate">-</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">判定</div>
+        <div class="stat-value" id="test2-result">-</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>テスト3: 連打テスト</h2>
+    <p class="description">「j」キーを5秒間できるだけ速く連打してください。タイピング速度を計測します。</p>
+    <div class="test-prompt">「j」を5秒間連打！</div>
+    <div class="progress-bar"><div class="progress-fill" id="test3-progress" style="width: 0%"></div></div>
+    <input type="text" id="test3-input" placeholder="ここでjを連打..." autocomplete="off">
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-label">打鍵数</div>
+        <div class="stat-value" id="test3-count">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">打鍵速度</div>
+        <div class="stat-value" id="test3-speed">-</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">平均間隔</div>
+        <div class="stat-value" id="test3-interval">-</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align: center; margin: 24px 0;">
+    <button onclick="analyzeResults()">📊 結果を分析</button>
+    <button onclick="resetAll()">🔄 リセット</button>
+  </div>
+
+  <div class="result-section hidden" id="result-section">
+    <h2>📋 分析結果と推奨設定</h2>
+    <div id="analysis-text"></div>
+    <h3>推奨コマンド</h3>
+    <div class="command-box">
+      <code id="recommended-command"></code>
+    </div>
+    <button onclick="copyCommand()">📋 コマンドをコピー</button>
+    <p class="description">※ 設定後はログアウト→ログインが必要です</p>
+  </div>
+
+  <footer>
+    <a href="https://mayholiholi.github.io/">mayholiholi</a>
+  </footer>
+
+  <script>
+    // テスト1: 単打テスト
+    const test1 = {
+      lastKey: '',
+      lastTime: 0,
+      repeatCount: 0,
+      charCount: 0
+    };
+
+    document.getElementById('test1-input').addEventListener('keydown', (e) => {
+      const now = Date.now();
+      const timeDiff = now - test1.lastTime;
+
+      // 同じキーが50ms以内に来たらリピートとみなす
+      if (e.key === test1.lastKey && timeDiff < 50) {
+        test1.repeatCount++;
+        document.getElementById('test1-repeats').textContent = test1.repeatCount;
+        document.getElementById('test1-repeats').classList.add('warning');
+      }
+
+      test1.lastKey = e.key;
+      test1.lastTime = now;
+    });
+
+    document.getElementById('test1-input').addEventListener('input', (e) => {
+      test1.charCount = e.target.value.length;
+      document.getElementById('test1-count').textContent = test1.charCount;
+
+      const result = document.getElementById('test1-result');
+      if (test1.repeatCount === 0 && test1.charCount >= 5) {
+        result.textContent = '✓ OK';
+        result.classList.add('success');
+        result.classList.remove('warning');
+      } else if (test1.repeatCount > 0) {
+        result.textContent = '⚠ 要調整';
+        result.classList.add('warning');
+        result.classList.remove('success');
+      }
+    });
+
+    // テスト2: 長押しテスト
+    const test2 = {
+      keyDownTime: 0,
+      firstRepeatTime: 0,
+      repeatCount: 0,
+      repeatTimes: [],
+      isHolding: false
+    };
+
+    document.getElementById('test2-input').addEventListener('keydown', (e) => {
+      if (e.key !== 'a') return;
+
+      if (!test2.isHolding) {
+        test2.keyDownTime = Date.now();
+        test2.isHolding = true;
+        test2.repeatCount = 0;
+        test2.repeatTimes = [];
+      } else {
+        // リピート発生
+        const now = Date.now();
+        if (test2.repeatCount === 0) {
+          test2.firstRepeatTime = now;
+          const delay = now - test2.keyDownTime;
+          document.getElementById('test2-delay').textContent = delay + 'ms';
+        }
+        test2.repeatTimes.push(now);
+        test2.repeatCount++;
+
+        if (test2.repeatTimes.length >= 2) {
+          const intervals = [];
+          for (let i = 1; i < test2.repeatTimes.length; i++) {
+            intervals.push(test2.repeatTimes[i] - test2.repeatTimes[i-1]);
+          }
+          const avgInterval = Math.round(intervals.reduce((a,b) => a+b, 0) / intervals.length);
+          const rate = Math.round(1000 / avgInterval);
+          document.getElementById('test2-rate').textContent = rate + '回/秒';
+
+          const result = document.getElementById('test2-result');
+          if (rate > 30) {
+            result.textContent = '⚠ 速すぎ';
+            result.classList.add('warning');
+          } else if (rate < 5) {
+            result.textContent = '⚠ 遅すぎ';
+            result.classList.add('warning');
+          } else {
+            result.textContent = '✓ OK';
+            result.classList.add('success');
+          }
+        }
+      }
+    });
+
+    document.getElementById('test2-input').addEventListener('keyup', (e) => {
+      if (e.key === 'a') {
+        test2.isHolding = false;
+      }
+    });
+
+    // テスト3: 連打テスト
+    const test3 = {
+      startTime: 0,
+      keyTimes: [],
+      isRunning: false,
+      timerId: null
+    };
+
+    document.getElementById('test3-input').addEventListener('keydown', (e) => {
+      if (e.key !== 'j') return;
+
+      const now = Date.now();
+
+      if (!test3.isRunning) {
+        test3.isRunning = true;
+        test3.startTime = now;
+        test3.keyTimes = [now];
+
+        // 5秒間のプログレスバー
+        let elapsed = 0;
+        test3.timerId = setInterval(() => {
+          elapsed += 100;
+          const progress = Math.min(100, (elapsed / 5000) * 100);
+          document.getElementById('test3-progress').style.width = progress + '%';
+
+          if (elapsed >= 5000) {
+            clearInterval(test3.timerId);
+            test3.isRunning = false;
+            document.getElementById('test3-input').blur();
+          }
+        }, 100);
+      } else {
+        test3.keyTimes.push(now);
+      }
+
+      document.getElementById('test3-count').textContent = test3.keyTimes.length;
+
+      if (test3.keyTimes.length >= 2) {
+        const duration = (now - test3.startTime) / 1000;
+        const speed = Math.round(test3.keyTimes.length / duration * 10) / 10;
+        document.getElementById('test3-speed').textContent = speed + '回/秒';
+
+        const intervals = [];
+        for (let i = 1; i < test3.keyTimes.length; i++) {
+          intervals.push(test3.keyTimes[i] - test3.keyTimes[i-1]);
+        }
+        const avgInterval = Math.round(intervals.reduce((a,b) => a+b, 0) / intervals.length);
+        document.getElementById('test3-interval').textContent = avgInterval + 'ms';
+      }
+    });
+
+    // 結果分析
+    function analyzeResults() {
+      const section = document.getElementById('result-section');
+      section.classList.remove('hidden');
+
+      let analysis = '';
+      let keyRepeat = 6;  // デフォルト
+      let initialKeyRepeat = 25;  // デフォルト
+
+      // テスト1の結果を反映
+      if (test1.repeatCount > 0) {
+        analysis += '<p class="warning">⚠ 単打時に意図しないリピートが発生しています。リピート開始までの時間を長くすることをおすすめします。</p>';
+        initialKeyRepeat = Math.min(35, initialKeyRepeat + 5 * test1.repeatCount);
+      } else if (test1.charCount >= 5) {
+        analysis += '<p class="success">✓ 単打テストは問題なしです。</p>';
+      }
+
+      // テスト2の結果を反映
+      const delayText = document.getElementById('test2-delay').textContent;
+      const rateText = document.getElementById('test2-rate').textContent;
+
+      if (delayText !== '-') {
+        const delay = parseInt(delayText);
+        if (delay < 300) {
+          analysis += '<p class="warning">⚠ リピート開始が速すぎます（' + delay + 'ms）。誤入力の原因になります。</p>';
+          initialKeyRepeat = Math.max(initialKeyRepeat, 30);
+        } else if (delay > 800) {
+          analysis += '<p>💡 リピート開始まで時間がかかっています（' + delay + 'ms）。長押し操作が多い場合は短くしても良いかも。</p>';
+        } else {
+          analysis += '<p class="success">✓ リピート開始タイミングは適切です。</p>';
+        }
+      }
+
+      if (rateText !== '-') {
+        const rate = parseInt(rateText);
+        if (rate > 30) {
+          analysis += '<p class="warning">⚠ リピート速度が速すぎます（' + rate + '回/秒）。</p>';
+          keyRepeat = Math.min(10, keyRepeat + 2);
+        } else if (rate < 8) {
+          analysis += '<p>💡 リピート速度がやや遅めです（' + rate + '回/秒）。</p>';
+        } else {
+          analysis += '<p class="success">✓ リピート速度は適切です。</p>';
+        }
+      }
+
+      // テスト3の結果を反映
+      const intervalText = document.getElementById('test3-interval').textContent;
+      if (intervalText !== '-') {
+        const interval = parseInt(intervalText);
+        const typingSpeed = document.getElementById('test3-speed').textContent;
+        analysis += '<p>📊 あなたの連打速度: ' + typingSpeed + '（平均間隔: ' + interval + 'ms）</p>';
+
+        // 連打速度に基づいて調整
+        if (interval < 80) {
+          analysis += '<p class="success">✓ タイピングが非常に速いです！現在の設定でも問題ないかもしれません。</p>';
+        } else if (interval > 150) {
+          analysis += '<p>💡 ゆっくり目のタイピングです。リピート速度は遅めが快適かも。</p>';
+          keyRepeat = Math.max(keyRepeat, 8);
+        }
+      }
+
+      // 最終推奨
+      analysis += '<h3>💡 推奨設定</h3>';
+      analysis += '<ul>';
+      analysis += '<li><strong>KeyRepeat:</strong> ' + keyRepeat + '（リピート速度。小さいほど速い）</li>';
+      analysis += '<li><strong>InitialKeyRepeat:</strong> ' + initialKeyRepeat + '（リピート開始までの時間。小さいほど短い）</li>';
+      analysis += '</ul>';
+
+      document.getElementById('analysis-text').innerHTML = analysis;
+
+      const command = `defaults write NSGlobalDomain KeyRepeat -int ${keyRepeat} && defaults write NSGlobalDomain InitialKeyRepeat -int ${initialKeyRepeat}`;
+      document.getElementById('recommended-command').textContent = command;
+
+      section.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function copyCommand() {
+      const command = document.getElementById('recommended-command').textContent;
+      navigator.clipboard.writeText(command).then(() => {
+        alert('コマンドをコピーしました！ターミナルで実行してください。');
+      });
+    }
+
+    function resetAll() {
+      // テスト1リセット
+      test1.lastKey = '';
+      test1.lastTime = 0;
+      test1.repeatCount = 0;
+      test1.charCount = 0;
+      document.getElementById('test1-input').value = '';
+      document.getElementById('test1-count').textContent = '0';
+      document.getElementById('test1-repeats').textContent = '0';
+      document.getElementById('test1-repeats').classList.remove('warning');
+      document.getElementById('test1-result').textContent = '-';
+      document.getElementById('test1-result').classList.remove('success', 'warning');
+
+      // テスト2リセット
+      test2.keyDownTime = 0;
+      test2.firstRepeatTime = 0;
+      test2.repeatCount = 0;
+      test2.repeatTimes = [];
+      test2.isHolding = false;
+      document.getElementById('test2-input').value = '';
+      document.getElementById('test2-delay').textContent = '-';
+      document.getElementById('test2-rate').textContent = '-';
+      document.getElementById('test2-result').textContent = '-';
+      document.getElementById('test2-result').classList.remove('success', 'warning');
+
+      // テスト3リセット
+      if (test3.timerId) clearInterval(test3.timerId);
+      test3.startTime = 0;
+      test3.keyTimes = [];
+      test3.isRunning = false;
+      document.getElementById('test3-input').value = '';
+      document.getElementById('test3-count').textContent = '0';
+      document.getElementById('test3-speed').textContent = '-';
+      document.getElementById('test3-interval').textContent = '-';
+      document.getElementById('test3-progress').style.width = '0%';
+
+      // 結果セクション非表示
+      document.getElementById('result-section').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>
